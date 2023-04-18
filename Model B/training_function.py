@@ -8,39 +8,43 @@ import accessory_functions as acc_f
 import matplotlib.pyplot as plt
 
 
-
-def create_custom_NN(in_shape, genes_to_train, breadth):
+def create_custom_NN(in_shape, genes_to_train, breadth, depth):
     inp_layer = keras.Input(shape = in_shape)
+    all_layers = []
+
     first_hidden_layer = []
 
     for g in range(genes_to_train - 1):
         g_th_tensor = tf.reshape(inp_layer[:,g], (-1,1))
         first_hidden_layer.append(keras.layers.Dense(breadth, activation="tanh")(g_th_tensor))
-    
-    second_hidden_layer = []
 
-    for hl in first_hidden_layer:
-        second_hidden_layer.append(keras.layers.Dense(breadth, activation="tanh")(hl))
-    
-    third_hidden_layer = []
+    all_layers.append(first_hidden_layer)
 
-    for hl in second_hidden_layer:
-        #third_hidden_layer.append(keras.layers.Dense(1, activation="tanh")(hl))
-        third_hidden_layer.append(keras.layers.Dense(1, activation="linear")(hl))
+    for lyr in range(depth-1):
+        current_lyr = []
+        for hl in all_layers[lyr]:
+            current_lyr.append(keras.layers.Dense(breadth, activation="tanh")(hl))
+        all_layers.append(current_lyr)
     
-    output_layer = keras.layers.Multiply()(third_hidden_layer)
+    last_hidden_layer = []
+
+    for hl in all_layers[-1]:
+        last_hidden_layer.append(keras.layers.Dense(1, activation="tanh")(hl))
+    
+    output_layer = keras.layers.Multiply()(last_hidden_layer)
 
     model = keras.Model(inputs=inp_layer, outputs=output_layer, name="graphNN")
-    return model
+    return model   
 
 
 # Neural Network that identifies individual functions for each edge
 class GraphTrainNN(keras.Model):
-    def __init__(self, in_shape, genes_to_train, breadth, **kwargs) -> None:
+    def __init__(self, in_shape, genes_to_train, breadth, depth, **kwargs) -> None:
         super(GraphTrainNN, self).__init__(**kwargs)
         self.in_shape = in_shape
         self.genes_to_train = genes_to_train
         self.breadth = breadth
+        self.depth = depth
         self.loss_tracker = keras.metrics.MeanSquaredError(name="Loss")
         self.model = None
     
@@ -49,7 +53,7 @@ class GraphTrainNN(keras.Model):
         return [self.loss_tracker]
     
     def make_model(self):
-        self.model = create_custom_NN(self.in_shape,self.genes_to_train,self.breadth)
+        self.model = create_custom_NN(self.in_shape,self.genes_to_train,self.breadth,self.depth)
     
     def my_summary(self):
         return self.model.summary()
@@ -74,14 +78,15 @@ def train_network(x_train,gamma,f_vec,time_steps,total_genes,genes_to_train,batc
     tf.keras.backend.clear_session()
     
     #genes_to_train = total_genes    # Genes for which NNs must be generated
-    
+    breadth = 2
+    depth = 2
     # List of all NN models
     NN_models = []
     # Creating the tensors for training
     #x_train_tensor = tf.convert_to_tensor(x_train, dtype=tf.float64)
 
     for gene in range(genes_to_train):
-        graph_model = GraphTrainNN(in_shape=(genes_to_train-1,), genes_to_train=genes_to_train, breadth=2)
+        graph_model = GraphTrainNN(in_shape=(genes_to_train-1,), genes_to_train=genes_to_train, breadth=breadth, depth=depth)
         graph_model.make_model()
         graph_model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.01))
         #print(graph_model.my_summary())
@@ -122,6 +127,6 @@ def train_network(x_train,gamma,f_vec,time_steps,total_genes,genes_to_train,batc
             ax[1].legend(loc='upper right')
         plt.show()
 
-    inter_matrix = acc_f.deduce_interactions(check_data,NN_models,genes_to_train,act_fn=act_fn,plot=plot_f_vals)
+    inter_matrix = acc_f.deduce_interactions(check_data,NN_models,genes_to_train,depth,act_fn=act_fn,plot=plot_f_vals)
 
     return inter_matrix, error
