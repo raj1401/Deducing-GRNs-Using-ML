@@ -1,5 +1,5 @@
-# Deducing-GRNs-Using-ML
- "Deducing Gene Regulatory Networks using Machine Learning" - Done by the author, Raj Mehta, as part of his Bachelor's Thesis at the Indian Institute of Science (IISc), Bangalore.
+# Bachelor's Thesis
+ "Deducing Gene Regulatory Networks using Machine Learning" - done by the author, Raj Mehta, as part of his Bachelor's Thesis at the Indian Institute of Science (IISc), Bangalore.
 
  ![BS Thesis Summary](BS_Thesis_Diagram.jpg)
 
